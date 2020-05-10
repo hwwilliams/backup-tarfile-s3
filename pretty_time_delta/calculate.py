@@ -105,7 +105,7 @@ class PrettyTimeDelta:
             formatted_duration.append(f'{self.seconds} Seconds')
 
         if self.milliseconds and self.milliseconds == 1:
-            formatted_duration.append(f'{self.milliseconds} Milliseconds')
+            formatted_duration.append(f'{self.milliseconds} Millisecond')
 
         elif self.milliseconds and self.milliseconds >= 2:
             formatted_duration.append(f'{self.milliseconds} Milliseconds')
