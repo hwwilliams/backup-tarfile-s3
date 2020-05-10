@@ -1,3 +1,11 @@
+# Project files
+**/settings/contacts.json
+**/settings/secrets.env
+**/settings/log_file.json
+settings/backup_configs/*
+!settings/backup_configs/example-linux.json
+!settings/backup_configs/example-windows.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
