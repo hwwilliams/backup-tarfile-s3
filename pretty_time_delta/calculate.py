@@ -65,7 +65,7 @@ def calc(seconds):
     return(days, hours, minutes, seconds, milliseconds)
 
 
-class PrettyTime:
+class PrettyTimeDelta:
     def __init__(self, seconds):
 
         (
