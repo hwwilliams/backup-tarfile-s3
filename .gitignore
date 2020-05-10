@@ -3,8 +3,8 @@
 **/settings/secrets.env
 **/settings/log_file.json
 settings/backup_configs/*
-!settings/backup_configs/example-linux.json
-!settings/backup_configs/example-windows.json
+!settings/backup_configs/linux.json.example
+!settings/backup_configs/windows.json.example
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
