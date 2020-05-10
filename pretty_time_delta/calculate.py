@@ -41,14 +41,14 @@ def calc(seconds):
     seconds_float = float(seconds)
 
     (
-        seconds,
+        starting_seconds,
         milliseconds
     ) = calc_seconds_float(seconds_float)
 
     (
         days,
         remaining_seconds
-    ) = calc_days(seconds)
+    ) = calc_days(starting_seconds)
 
     (
         hours,
