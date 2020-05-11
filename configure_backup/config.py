@@ -1,6 +1,7 @@
 import json
 import os
 import logging
+import re
 
 from configure_upload.lookup import Lookup
 
@@ -58,6 +59,7 @@ def validate(backup_config):
 
     backup_name = backup_config['Name']
     bucket_name = backup_config['BackupDestination']['BucketName']
+    bucket_file_prefix = backup_config['BackupDestination']['BucketFilePrefix']
     backup_sources = backup_config['BackupSources']
     backup_health_check_url = backup_config['HealthCheckUrl']
 
@@ -80,6 +82,15 @@ def validate(backup_config):
         if not s3_lookup.bucket():
             invalid_configurations.append(json.dumps({
                 "Issue": "BucketNameInvalid", "Name": bucket_name}))
+
+    if bucket_file_prefix:
+        prefix_end_slash = r"^[a-zA-Z0-9].*[a-zA-Z0-9]\/$"
+        prefix_no_end_slash = r"^[a-zA-Z0-9].*[a-zA-Z0-9]$"
+
+        if not bool(re.compile(prefix_end_slash).match(bucket_file_prefix)):
+            if not bool(re.compile(prefix_no_end_slash).match(bucket_file_prefix)):
+                invalid_configurations.append(json.dumps({
+                    "Issue": "BucketFilePrefixInvalid", "Prefix": bucket_file_prefix}))
 
     for source in backup_sources:
         if not os.path.exists(source['Path']):
