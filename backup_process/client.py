@@ -11,7 +11,7 @@ class S3Client():
     def __init__(self):
         logger.debug('Attempting to initialize S3 client.')
 
-        self.exceptions = [
+        credential_exceptions = [
             'NoCredentialsError',
             'PartialCredentialsError',
             'CredentialRetrievalError'
@@ -23,7 +23,7 @@ class S3Client():
         except ClientError as error:
             error_code = error.response.get("Error", {}).get("Code")
 
-            if error_code in self.exceptions:
+            if error_code in credential_exceptions:
                 logger.error(
                     f'Failed to initialize S3 client due to invalid or missing credentials: {json.dumps({"ErrorCode": error_code})}')
 
