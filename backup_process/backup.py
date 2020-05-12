@@ -58,7 +58,7 @@ def handle_tarfile(name, sources, temp_dir):
         f'Building tar output: {json.dumps({"Backup": name, "OutputDirectory": temp_dir})}')
 
     name = str(name).lower().replace(' ', '-')
-    tar_name = name + '.tar'
+    tar_name = name + '.xz' + '.tar'
     tar_output = os.path.join(temp_dir, tar_name)
 
     logger.debug(f'Built tar output: {json.dumps({"Output": tar_output})}')
