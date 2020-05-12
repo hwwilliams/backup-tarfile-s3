@@ -95,12 +95,14 @@ class Upload:
         self.backup_size = backup_size
         self.bucket_name = backup_destination['BucketName']
         self.bucket_file_prefix = backup_destination['BucketFilePrefix']
-        self.upload_extra_args = backup_destination['BucketUploadExtraArgs']
 
+        self.config = get_transfer_config(self.backup_size)
         self.bucket_object_name = bucket_object_name(
             self.bucket_file_prefix, self.backup_source)
 
-        self.config = get_transfer_config(self.backup_size)
+        self.upload_extra_args = backup_destination['BucketUploadExtraArgs']
+        if not self.upload_extra_args:
+            self.upload_extra_args = None
 
     @upload_duration
     def transfer(self):
