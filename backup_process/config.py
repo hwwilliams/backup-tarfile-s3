@@ -1,9 +1,9 @@
 import json
-import os
 import logging
+import os
 import re
 
-from configure_upload.lookup import Lookup
+from backup_process.lookup import Lookup
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ def get_backups_config(backup_config):
         raise InvalidJsonBackupsConfigurationArray
 
 
-def validate(backup_config):
+def validate(backup_config, s3_client):
     valid_source_types = ['tarfile', 'sqlite']
 
     backup_name = backup_config['Name']
@@ -78,7 +78,7 @@ def validate(backup_config):
             "Issue": "BucketNameEmpty", "Name": None}))
 
     elif bucket_name:
-        s3_lookup = Lookup(bucket_name)
+        s3_lookup = Lookup(bucket_name, s3_client)
         if not s3_lookup.bucket():
             invalid_configurations.append(json.dumps({
                 "Issue": "BucketNameInvalid", "Name": bucket_name}))
@@ -111,14 +111,14 @@ def validate(backup_config):
 
     elif len(invalid_configurations) == 0:
         logger.debug(
-            f'Valid backup configuration: {json.dumps({"Name": backup_name})}')
+            f'Validated backup configuration: {json.dumps({"Backup": backup_name})}')
 
         return backup_config
 
 
-class BackupConfiguration:
+class ConfigureBackup:
     def __init__(self, backup_config):
-        logger.debug('Attempting to import backup configuration.')
+        logger.debug('Attempting to validate backup configuration json data.')
 
         (
             self.backups_config_dict,
@@ -126,15 +126,16 @@ class BackupConfiguration:
         ) = get_backups_config(backup_config)
 
         logger.debug(
-            'Successfully imported backup configuration.')
+            'Successfully validated backup configuration json data.')
 
-    def valid(self):
+    def valid(self, s3_client):
         logger.debug(
-            'Attempting to validate backup configuration.')
+            'Attempting to validate backup configuration settings.')
 
-        valid_backup_config = validate(self.backups_config_dict)
+        valid_backup_config = validate(
+            self.backups_config_dict, s3_client)
 
         logger.debug(
-            'Successfully validated backup configuration.')
+            'Successfully validated backup configuration settings.')
 
         return valid_backup_config
