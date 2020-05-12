@@ -2,24 +2,25 @@
   "BackupConfig": {
     "Name": "Backup Example Linux",
     "HealthCheckUrl": "https://hc-ping.com/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    "BackupDestinations": [
-      {
-        "BucketName": "Backup-Example-Linux",
-        "Type": "s3"
-      }
-    ],
+    "BackupDestination": {
+      "BucketName": "example-bucket-name",
+      "BucketFilePrefix": "backup/example",
+      "BucketUploadExtraArgs": {}
+    },
     "BackupSources": [
       {
-        "BucketFilePrefix": "",
         "Exclude": [],
         "Path": "/Path/To/Backup",
-        "Type": ["tarfile"]
+        "Type": [
+          "tarfile"
+        ]
       },
       {
-        "BucketFilePrefix": "",
         "Exclude": [],
         "Path": "/Path/To/Another/Backup",
-        "Type": ["tarfile"]
+        "Type": [
+          "tarfile"
+        ]
       }
     ]
   }
