@@ -112,9 +112,8 @@ class Backup:
             logger.debug(
                 f'Attempting to upload backup: {json.dumps({"Backup": self.name, "Size": tar_size_pretty})}')
 
-            process_upload = Upload(
-                tar_output, tar_size, self.name, self.backup_destination, s3_client)
-            upload_duration = process_upload.transfer()
+            upload_duration = Upload(
+                tar_output, tar_size, self.name, self.backup_destination, s3_client).transfer()
 
             logger.debug(
                 f'Sucessfully uploaded backup: {json.dumps({"Backup": self.name, "Size": tar_size_pretty})}')
