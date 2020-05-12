@@ -1,13 +1,9 @@
-#!/usr/bin/env python
-
 import logging
 import time
 
 from twilio.base.exceptions import TwilioRestException
-
 from twilio_notifications.client import TwilioClient
 from twilio_notifications.lookup import Contacts
-
 
 logger = logging.getLogger(__name__)
 

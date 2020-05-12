@@ -1,8 +1,6 @@
-#!/usr/bin/env python
-
 import json
-import os
 import logging
+import os
 
 from twilio.base.exceptions import TwilioRestException
 
