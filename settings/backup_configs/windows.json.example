@@ -9,14 +9,14 @@
     },
     "BackupSources": [
       {
-        "Exclude": [],
         "Path": "P:\\Path\\To\\Backup",
-        "Type": ["tarfile"]
+        "Exclude": [],
+        "ExtraProcess": []
       },
       {
-        "Exclude": [],
         "Path": "P:\\Path\\To\\Another\\Backup",
-        "Type": ["tarfile"]
+        "Exclude": [],
+        "ExtraProcess": []
       }
     ]
   }
