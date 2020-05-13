@@ -74,11 +74,11 @@ def handle_tarfile(name, sources, temp_dir):
 
 
 def handle_sources(name, sources, temp_dir):
-        (
-            tar_output,
-            tar_size,
-            tar_size_pretty
-        ) = handle_tarfile(name, sources, temp_dir)
+    (
+        tar_output,
+        tar_size,
+        tar_size_pretty
+    ) = handle_tarfile(name, sources, temp_dir)
 
     return(tar_output, tar_size, tar_size_pretty)
 
