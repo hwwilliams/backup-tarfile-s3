@@ -55,8 +55,6 @@ def get_backups_config(backup_config):
 
 
 def validate(backup_config, s3_client):
-    valid_source_types = ['tarfile', 'sqlite']
-
     backup_name = backup_config['Name']
     bucket_name = backup_config['BackupDestination']['BucketName']
     bucket_file_prefix = backup_config['BackupDestination']['BucketFilePrefix']
@@ -96,11 +94,6 @@ def validate(backup_config, s3_client):
         if not os.path.exists(source['Path']):
             invalid_configurations.append(json.dumps({
                 "Issue": "SourcePathNotFound", "Source": source}))
-
-        for source_type in source['Type']:
-            if source_type not in valid_source_types:
-                invalid_configurations.append(json.dumps({
-                    "Issue": "SourceTypeNotAllowed", "Source": source}))
 
     if len(invalid_configurations) > 0:
         for invalid_configuration in invalid_configurations:
