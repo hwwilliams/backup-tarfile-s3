@@ -10,6 +10,7 @@ from backup_process.tempdir import TemporaryDirectory
 from backup_process.upload import Upload
 from hurry.filesize import size, verbose
 from pretty_time_delta.calculate import PrettyTimeDelta
+from urllib.error import HTTPError, URLError
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,7 @@ def create_tarfile(name, output, sources):
                 else:
                     logger.error(
                         f'Failed to add source to tar: {json.dumps({"Backup": name, "Source": source})}')
+
                     raise error
 
             else:
@@ -83,6 +85,30 @@ def handle_sources(name, sources, temp_dir):
     return(tar_output, tar_size, tar_size_pretty)
 
 
+def handle_health_check(backup_name, health_check_url):
+    logger.debug(
+        f'Attempting to send health check: {json.dumps({"BackupName": backup_name, "HealthCheckUrl": health_check_url})}')
+
+    try:
+        urllib.request.urlopen(health_check_url)
+
+    except HTTPError as error:
+        logger.error(
+            f'Failed to send health check: {json.dumps({"BackupName": backup_name, "HealthCheckUrl": health_check_url, "ErrorCode": error.code})}')
+
+        raise error
+
+    except URLError as error:
+        logger.error(
+            f'Failed to send health check: {json.dumps({"BackupName": backup_name, "HealthCheckUrl": health_check_url, "ErrorCode": error.reason})}')
+
+        raise error
+
+    else:
+        logger.debug(
+            f'Successfully sent health check: {json.dumps({"BackupName": backup_name, "HealthCheckUrl": health_check_url})}')
+
+
 class Backup:
     def __init__(self, backup_config):
 
@@ -107,7 +133,7 @@ class Backup:
             upload_duration = Upload(
                 tar_output, tar_size, self.name, self.backup_destination, s3_client).transfer()
 
-            urllib.request.urlopen(self.health_check_url)
+            handle_health_check(self.name, self.health_check_url)
 
             logger.info(
                 f'Sucessfully uploaded backup: {json.dumps({"Backup": self.name, "Size": tar_size_pretty})}')
