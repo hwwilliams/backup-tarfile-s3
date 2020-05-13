@@ -4,6 +4,7 @@ import logging
 import os
 import tarfile
 import timeit
+import urllib.request
 
 from backup_process.tempdir import TemporaryDirectory
 from backup_process.upload import Upload
@@ -58,10 +59,8 @@ def handle_tarfile(name, sources, temp_dir):
         f'Building tar output: {json.dumps({"Backup": name, "OutputDirectory": temp_dir})}')
 
     name = str(name).lower().replace(' ', '-')
-    tar_name = name + '.xz' + '.tar'
+    tar_name = name + '.xz.tar'
     tar_output = os.path.join(temp_dir, tar_name)
-
-    logger.debug(f'Built tar output: {json.dumps({"Output": tar_output})}')
 
     create_tarfile(name, tar_output, sources)
 
@@ -75,18 +74,11 @@ def handle_tarfile(name, sources, temp_dir):
 
 
 def handle_sources(name, sources, temp_dir):
-    tar_sources = []
-
-    for source in sources:
-        if 'tarfile' in source['Type']:
-            tar_sources.append(source)
-
-    if len(tar_sources) > 0:
         (
             tar_output,
             tar_size,
             tar_size_pretty
-        ) = handle_tarfile(name, tar_sources, temp_dir)
+        ) = handle_tarfile(name, sources, temp_dir)
 
     return(tar_output, tar_size, tar_size_pretty)
 
@@ -109,13 +101,15 @@ class Backup:
                 tar_size_pretty
             ) = handle_sources(self.name, self.sources, temp_dir)
 
-            logger.debug(
+            logger.info(
                 f'Attempting to upload backup: {json.dumps({"Backup": self.name, "Size": tar_size_pretty})}')
 
             upload_duration = Upload(
                 tar_output, tar_size, self.name, self.backup_destination, s3_client).transfer()
 
-            logger.debug(
+            urllib.request.urlopen(self.health_check_url)
+
+            logger.info(
                 f'Sucessfully uploaded backup: {json.dumps({"Backup": self.name, "Size": tar_size_pretty})}')
             logger.debug(
                 f'Upload process took {upload_duration}.')
