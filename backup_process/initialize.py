@@ -3,16 +3,15 @@ import logging
 from backup_process.client import S3Client
 from backup_process.config import ConfigureBackup
 from backup_process.backup import Backup
-# from twilio_notifications.client import TwilioClient
+from twilio_notifications.messenger import TwilioNotification
 
 logger = logging.getLogger(__name__)
 
 
 def clients():
-    s3 = S3Client()
-    # twilio = TwilioClient()
+    twilio = TwilioNotification()
+    s3 = S3Client(twilio)
 
-    # return(s3.client, twilio.client)
     return(s3.client)
 
 
@@ -24,7 +23,7 @@ class Process():
 
         self.backup_config = ConfigureBackup(config).valid(s3_client)
 
-        logger.debug('Initializing backup.')
+        logger.info('Initializing backup.')
         backup_duration = Backup(self.backup_config).make(s3_client)
-        logger.debug(
+        logger.info(
             f'Completed backup. Backup process took {backup_duration}.')
