@@ -4,6 +4,7 @@ import os
 import re
 
 from backup_process.lookup import Lookup
+from json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ def get_backups_config(backup_config):
         with open(backups_config_json_path, 'r') as file:
             backups_config_dict = json.load(file)
 
-    except json.JSONDecodeError:
+    except JSONDecodeError:
         logger.error(
             f'No valid JSON data found when attempting to load backup configuration: {json.dumps({"File": backups_config_json_path})}')
         raise
