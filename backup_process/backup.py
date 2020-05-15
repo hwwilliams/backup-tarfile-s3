@@ -91,12 +91,19 @@ def handle_sources(name, sources, temp_dir):
     return(tar_output, tar_size, tar_size_pretty)
 
 
-def handle_health_check(backup_name, health_check_url):
+def handle_health_check(backup_name, health_check_url, start_health_check=None, fail_health_check=None):
     logger.debug(
         f'Attempting to send health check: {json.dumps({"BackupName": backup_name, "HealthCheckUrl": health_check_url})}')
 
     try:
-        urllib.request.urlopen(health_check_url)
+        if start_health_check:
+            urllib.request.urlopen(health_check_url + '/start')
+
+        elif fail_health_check:
+            urllib.request.urlopen(health_check_url + '/fail')
+
+        else:
+            urllib.request.urlopen(health_check_url)
 
     except HTTPError as error:
         logger.error(
@@ -125,23 +132,38 @@ class Backup:
 
     @backup_duration
     def make(self, s3_client):
-        with TemporaryDirectory() as temp_dir:
+        try:
+            handle_health_check(
+                self.name, self.health_check_url, start_health_check=True)
 
-            (
-                tar_output,
-                tar_size,
-                tar_size_pretty
-            ) = handle_sources(self.name, self.sources, temp_dir)
+            with TemporaryDirectory() as temp_dir:
 
-            logger.info(
-                f'Attempting to upload backup: {json.dumps({"Backup": self.name, "Size": tar_size_pretty})}')
+                (
+                    tar_output,
+                    tar_size,
+                    tar_size_pretty
+                ) = handle_sources(self.name, self.sources, temp_dir)
 
-            upload_duration = Upload(
-                tar_output, tar_size, self.name, self.backup_destination, s3_client).transfer()
+                logger.info(
+                    f'Attempting to upload backup: {json.dumps({"Backup": self.name, "Size": tar_size_pretty})}')
 
-            handle_health_check(self.name, self.health_check_url)
+                upload_duration = Upload(
+                    tar_output, tar_size, self.name, self.backup_destination, s3_client).transfer()
 
+        except Exception as error:
+            logger.error(
+                f'Failed backup: {json.dumps({"Backup": self.name})}')
+
+            handle_health_check(
+                self.name, self.health_check_url, fail_health_check=True)
+
+            raise error
+
+        else:
             logger.info(
                 f'Sucessfully uploaded backup: {json.dumps({"Backup": self.name, "Size": tar_size_pretty})}')
+
             logger.debug(
                 f'Upload process took {upload_duration}.')
+
+            handle_health_check(self.name, self.health_check_url)
