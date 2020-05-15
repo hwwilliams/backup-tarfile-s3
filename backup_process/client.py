@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class S3Client():
-    def __init__(self, twilio):
+    def __init__(self):
         logger.debug('Attempting to initialize S3 client.')
 
         credential_exceptions = [
@@ -27,14 +27,14 @@ class S3Client():
                 logger.error(
                     f'Failed to initialize S3 client due to invalid or missing credentials: {json.dumps({"ErrorCode": error_code})}')
 
-                twilio.process_messasge(
-                    f'Failed to initialize S3 client due to invalid or missing credentials: {json.dumps({"ErrorCode": error_code})}')
+                # twilio.process_messasge(
+                #     f'Failed to initialize S3 client due to invalid or missing credentials: {json.dumps({"ErrorCode": error_code})}')
 
             logger.error(
                 f'Failed to initialize S3 client: {json.dumps({"ErrorCode": error_code})}')
 
-            twilio.process_messasge(
-                f'Failed to initialize S3 client: {json.dumps({"ErrorCode": error_code})}')
+            # twilio.process_messasge(
+            #     f'Failed to initialize S3 client: {json.dumps({"ErrorCode": error_code})}')
 
             raise error
 

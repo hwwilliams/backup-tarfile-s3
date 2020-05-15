@@ -3,14 +3,14 @@ import logging
 from backup_process.client import S3Client
 from backup_process.config import ConfigureBackup
 from backup_process.backup import Backup
-from twilio_notifications.messenger import TwilioNotification
+# from twilio_notifications.messenger import TwilioNotification
 
 logger = logging.getLogger(__name__)
 
 
 def clients():
-    twilio = TwilioNotification()
-    s3 = S3Client(twilio)
+    # twilio = TwilioNotification()
+    s3 = S3Client()
 
     return(s3.client)
 
