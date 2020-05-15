@@ -8,7 +8,7 @@ from backup_process.initialize import Process
 def configure_logging():
     logging.getLogger(__name__)
     loggingformat = ' %(levelname)s :: %(name)s :: %(message)s'
-    logging.basicConfig(level=logging.DEBUG, format=loggingformat)
+    logging.basicConfig(level=logging.INFO, format=loggingformat)
     # journald_handler = journal.JournalHandler()
     # journald_handler.setFormatter(logging.Formatter(
     #     '[%(levelname)s] %(message)s'
