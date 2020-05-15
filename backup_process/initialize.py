@@ -24,6 +24,8 @@ class Process():
         self.backup_config = ConfigureBackup(config).valid(s3_client)
 
         logger.info('Initializing backup.')
+
         backup_duration = Backup(self.backup_config).make(s3_client)
+
         logger.info(
             f'Completed backup. Backup process took {backup_duration}.')
