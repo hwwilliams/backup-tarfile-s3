@@ -2,6 +2,7 @@ import functools
 import json
 import logging
 import os
+import re
 import tarfile
 import timeit
 import urllib.request
@@ -32,13 +33,18 @@ def backup_duration(make_backup):
 
 def create_tarfile(name, output, sources):
     with tarfile.open(output, 'w:xz') as tar:
+
         for source in sources:
             source_path = source['Path']
+            exclusions = '(?:% s)' % '|'. join(source['Exclude'])
+
             logger.debug(
                 f'Attempting to add source to tar: {json.dumps({"Backup": name, "Sources": source_path})}')
 
             try:
-                tar.add(source_path, arcname=os.path.basename(source_path))
+
+                tar.add(source_path, arcname=os.path.basename(
+                    source_path), filter=lambda tarinfo: None if re.search(exclusions, tarinfo.name) else tarinfo)
 
             except IOError as error:
                 if 'Permission denied' in error.strerror:
