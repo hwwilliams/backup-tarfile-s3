@@ -74,7 +74,6 @@ class Upload:
 
         self.config = get_transfer_config(self.size)
 
-        self.backup_name = backup_config['Name']
         self.bucket_name = backup_config['Destination']['Bucket']
         self.bucket_file_prefix = backup_config['Destination']['FilePrefix']
         self.object_name = backup_config['TarOutputName']
