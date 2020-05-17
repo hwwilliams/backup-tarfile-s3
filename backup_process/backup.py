@@ -33,15 +33,7 @@ class Backup:
         self.config = backup_config
 
         self.name = self.config['Name']
-        self.hc_url = self.config['HealthCheckUrl']
-        self.compression = self.config['TarCompression']
         self.output_name = self.config['TarOutputName']
-
-        self.destination = self.config['Destination']
-        self.bucket = self.destination['Bucket']
-        self.file_prefix = self.destination['FilePrefix']
-        self.extra_upload_args = self.destination['UploadExtraArgs']
-
         self.sources = self.config['Sources']
 
     @backup_duration
