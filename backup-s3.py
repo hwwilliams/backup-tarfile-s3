@@ -2,7 +2,7 @@ import argparse
 import logging
 
 # from systemd import journal
-from backup_process.initialize import Process
+from backup_initialize.process import InitializeProcess
 
 
 def configure_logging():
@@ -27,7 +27,7 @@ def argument_parser():
 
 def handle_arguments(arguments):
     if arguments.config:
-        Process(arguments.config)
+        InitializeProcess(arguments.config)
 
 
 def main():
