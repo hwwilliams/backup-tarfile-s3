@@ -1,8 +1,7 @@
+import botocore.exceptions
 import boto3
 import json
 import logging
-
-from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +19,7 @@ class S3Client():
         try:
             self.client = boto3.client('s3')
 
-        except ClientError as error:
+        except botocore.exceptions.ClientError as error:
             error_code = error.response.get("Error", {}).get("Code")
 
             if error_code in credential_exceptions:
