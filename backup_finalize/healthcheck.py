@@ -1,40 +1,8 @@
 import json
 import logging
-import urllib.error
-import urllib.request
+import requests
 
 logger = logging.getLogger(__name__)
-
-
-def handle_health_check(backup_name, health_check_url, start_health_check=None, fail_health_check=None):
-    logger.debug(
-        f'Attempting to send health check: {json.dumps({"BackupName": backup_name, "HealthCheckUrl": health_check_url})}')
-
-    try:
-        if start_health_check:
-            urllib.request.urlopen(health_check_url + '/start')
-
-        elif fail_health_check:
-            urllib.request.urlopen(health_check_url + '/fail')
-
-        else:
-            urllib.request.urlopen(health_check_url)
-
-    except urllib.error.HTTPError as error:
-        logger.error(
-            f'Failed to send health check: {json.dumps({"BackupName": backup_name, "HealthCheckUrl": health_check_url, "ErrorCode": error.code})}')
-
-        raise error
-
-    except urllib.error.URLError as error:
-        logger.error(
-            f'Failed to send health check: {json.dumps({"BackupName": backup_name, "HealthCheckUrl": health_check_url, "ErrorCode": error.reason})}')
-
-        raise error
-
-    else:
-        logger.debug(
-            f'Successfully sent health check: {json.dumps({"BackupName": backup_name, "HealthCheckUrl": health_check_url})}')
 
 
 class HealthCheck():
@@ -46,25 +14,25 @@ class HealthCheck():
         logger.debug(
             f'Attempting to send health check: {json.dumps({"BackupName": self.backup_name, "HealthCheckUrl": self.url})}')
 
+        retry_adapter = requests.adapters.HTTPAdapter(max_retries=3)
+
+        session = requests.Session()
+        session.mount('https://', retry_adapter)
+        session.mount('http://', retry_adapter)
+
         try:
             if initialize:
-                urllib.request.urlopen(self.url + '/start')
+                session.get(self.url + '/start')
 
             elif failure:
-                urllib.request.urlopen(self.url + '/fail')
+                session.get(self.url + '/fail')
 
             else:
-                urllib.request.urlopen(self.url)
+                session.get(self.url)
 
-        except urllib.error.HTTPError as error:
+        except requests.exceptions.ConnectionError as error:
             logger.error(
-                f'Failed to send health check: {json.dumps({"BackupName": self.backup_name, "HealthCheckUrl": self.url, "ErrorCode": error.code})}')
-
-            raise error
-
-        except urllib.error.URLError as error:
-            logger.error(
-                f'Failed to send health check: {json.dumps({"BackupName": self.backup_name, "HealthCheckUrl": self.url, "ErrorCode": error.reason})}')
+                f'Failed to send health check: {json.dumps({"BackupName": self.backup_name, "HealthCheckUrl": self.url})}')
 
             raise error
 
