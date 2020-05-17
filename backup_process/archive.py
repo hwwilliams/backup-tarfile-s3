@@ -5,8 +5,6 @@ import os
 import re
 import tarfile
 
-from hurry.filesize import size, verbose
-
 logger = logging.getLogger(__name__)
 
 
