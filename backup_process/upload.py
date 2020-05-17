@@ -1,3 +1,4 @@
+import botocore.exceptions
 import boto3
 import functools
 import json
@@ -5,8 +6,6 @@ import logging
 import os
 import timeit
 
-from boto3.s3.transfer import TransferConfig
-from botocore.exceptions import ClientError
 from pretty_time_delta.calculate import PrettyTimeDelta
 
 logger = logging.getLogger(__name__)
@@ -25,25 +24,6 @@ def upload_duration(upload_backup):
         return duration.format()
 
     return wrapper_upload_duration
-
-
-def bucket_object_name(file_prefix, source):
-    file_prefix = str(file_prefix)
-
-    if file_prefix:
-        if file_prefix.endswith('/'):
-            object_name = file_prefix + os.path.basename(source)
-
-        else:
-            object_name = f'{file_prefix}/{os.path.basename(source)}'
-
-    else:
-        object_name = os.path.basename(source)
-
-    logger.debug(
-        f'Upload Process: {json.dumps({"BucketObjectName": object_name})}')
-
-    return object_name
 
 
 def calc_chunksize(backup_size, MB_binary, MB_threshold):
@@ -72,7 +52,7 @@ def get_transfer_config(backup_size):
     if backup_size >= (MB_threshold * MB_binary):
         MB_chunksize = calc_chunksize(backup_size, MB_binary, MB_threshold)
 
-        return TransferConfig(
+        return boto3.s3.transfer.TransferConfig(
             multipart_threshold=(MB_threshold * MB_binary),
             max_concurrency=10,
             multipart_chunksize=(MB_chunksize * MB_binary),
@@ -80,37 +60,47 @@ def get_transfer_config(backup_size):
         )
 
     else:
-        return TransferConfig(
+        return boto3.s3.transfer.TransferConfig(
             max_concurrency=10,
             use_threads=True
         )
 
 
 class Upload:
-    def __init__(self, backup_source, backup_size, backup_name, backup_destination, s3_client):
+    def __init__(self, backup_config, upload_source, upload_size, s3_client):
         self.s3_client = s3_client
+        self.source = upload_source
+        self.size = upload_size
 
-        self.backup_name = backup_name
-        self.backup_source = backup_source
-        self.backup_size = backup_size
-        self.bucket_name = backup_destination['BucketName']
-        self.bucket_file_prefix = backup_destination['BucketFilePrefix']
+        self.config = get_transfer_config(self.size)
 
-        self.config = get_transfer_config(self.backup_size)
-        self.bucket_object_name = bucket_object_name(
-            self.bucket_file_prefix, self.backup_source)
+        self.backup_name = backup_config['Name']
+        self.bucket_name = backup_config['Destination']['Bucket']
+        self.bucket_file_prefix = backup_config['Destination']['FilePrefix']
+        self.object_name = backup_config['TarOutputName']
+        self.source_hash = backup_config['Checksum']
 
-        self.upload_extra_args = backup_destination['BucketUploadExtraArgs']
-        if not self.upload_extra_args:
-            self.upload_extra_args = None
+        self.object_path = os.path.join(
+            self.bucket_file_prefix, self.object_name)
+
+        if '\\' in self.object_path:
+            self.object_path = self.object_path.replace('\\', '/')
+
+        if backup_config['Destination']['UploadExtraArgs']:
+            self.upload_extra_args = backup_config['Destination']['UploadExtraArgs']
+            self.upload_extra_args['Metadata'] = {'SHA256': self.source_hash}
+
+        else:
+            self.upload_extra_args = {}
+            self.upload_extra_args['Metadata'] = {'SHA256': self.source_hash}
 
     @upload_duration
     def transfer(self):
         try:
-            self.s3_client.upload_file(self.backup_source, self.bucket_name,
-                                       self.bucket_object_name, ExtraArgs=self.upload_extra_args, Config=self.config)
+            self.s3_client.upload_file(self.source, self.bucket_name,
+                                       self.object_path, ExtraArgs=self.upload_extra_args, Config=self.config)
 
-        except ClientError as error:
+        except botocore.exceptions.ClientError as error:
             error_code = error.response.get("Error", {}).get("Code")
 
             logger.error(
