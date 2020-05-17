@@ -49,9 +49,9 @@ class InitializeProcess():
                 f'Backup content identical to destination. Backup process canceled: {json.dumps({"Backup": backup_name})}')
 
         elif not lookup_bucket_object or lookup_bucket_object == None:
-            health_check.push(initialize=True)
-
             try:
+                health_check.push(initialize=True)
+
                 backup_duration = Backup(backup_config, s3_client).make()
 
             except Exception as error:
