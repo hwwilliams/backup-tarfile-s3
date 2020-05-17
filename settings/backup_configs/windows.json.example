@@ -2,12 +2,17 @@
   "BackupConfig": {
     "Name": "Backup Example Windows",
     "HealthCheckUrl": "https://hc-ping.com/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    "BackupDestination": {
-      "BucketName": "example-bucket-name",
-      "BucketFilePrefix": "backup/example",
-      "BucketUploadExtraArgs": {}
+    "TarCompression": "xz",
+    "Destination": {
+      "Bucket": "example-bucket-name",
+      "FilePrefix": "backup/example",
+      "UploadExtraArgs": {
+        "ACL": "private",
+        "ServerSideEncryption": "AES256",
+        "StorageClass": "STANDARD"
+      }
     },
-    "BackupSources": [
+    "Sources": [
       {
         "Path": "P:\\Path\\To\\Backup",
         "Exclude": [],
