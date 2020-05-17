@@ -2,16 +2,12 @@ import functools
 import json
 import logging
 import os
-import re
-import tarfile
 import timeit
-import urllib.request
 
+from backup_process.archive import Archive
 from backup_process.tempdir import TemporaryDirectory
 from backup_process.upload import Upload
-from hurry.filesize import size, verbose
 from pretty_time_delta.calculate import PrettyTimeDelta
-from urllib.error import HTTPError, URLError
 
 logger = logging.getLogger(__name__)
 
@@ -31,139 +27,48 @@ def backup_duration(make_backup):
     return wrapper_backup_duration
 
 
-def create_tarfile(name, output, sources):
-    with tarfile.open(output, 'w:xz') as tar:
-
-        for source in sources:
-            source_path = source['Path']
-            exclusions = '(?:% s)' % '|'. join(source['Exclude'])
-
-            logger.debug(
-                f'Attempting to add source to tar: {json.dumps({"Backup": name, "Sources": source_path})}')
-
-            try:
-
-                tar.add(source_path, arcname=os.path.basename(
-                    source_path), filter=lambda tarinfo: None if re.search(exclusions, tarinfo.name) else tarinfo)
-
-            except IOError as error:
-                if 'Permission denied' in error.strerror:
-                    logger.error(
-                        f'Failed to add source to tar. Permission Denied: {json.dumps({"Backup": name, "Source": source})}')
-
-                else:
-                    logger.error(
-                        f'Failed to add source to tar: {json.dumps({"Backup": name, "Source": source})}')
-
-                    raise error
-
-            else:
-                logger.debug(
-                    f'Successfully added source to tar: {json.dumps({"Backup": name, "Source": source_path})}')
-
-
-def handle_tarfile(name, sources, temp_dir):
-    logger.debug(
-        f'Building tar output: {json.dumps({"Backup": name, "OutputDirectory": temp_dir})}')
-
-    name = str(name).lower().replace(' ', '-')
-    tar_name = name + '.xz.tar'
-    tar_output = os.path.join(temp_dir, tar_name)
-
-    create_tarfile(name, tar_output, sources)
-
-    tar_size = os.path.getsize(tar_output)
-    tar_size_pretty = size(tar_size, system=verbose)
-
-    logger.debug(
-        f'Successfully created tar: {json.dumps({"Output": tar_output, "Size": tar_size_pretty})}')
-
-    return(tar_output, tar_size, tar_size_pretty)
-
-
-def handle_sources(name, sources, temp_dir):
-    (
-        tar_output,
-        tar_size,
-        tar_size_pretty
-    ) = handle_tarfile(name, sources, temp_dir)
-
-    return(tar_output, tar_size, tar_size_pretty)
-
-
-def handle_health_check(backup_name, health_check_url, start_health_check=None, fail_health_check=None):
-    logger.debug(
-        f'Attempting to send health check: {json.dumps({"BackupName": backup_name, "HealthCheckUrl": health_check_url})}')
-
-    try:
-        if start_health_check:
-            urllib.request.urlopen(health_check_url + '/start')
-
-        elif fail_health_check:
-            urllib.request.urlopen(health_check_url + '/fail')
-
-        else:
-            urllib.request.urlopen(health_check_url)
-
-    except HTTPError as error:
-        logger.error(
-            f'Failed to send health check: {json.dumps({"BackupName": backup_name, "HealthCheckUrl": health_check_url, "ErrorCode": error.code})}')
-
-        raise error
-
-    except URLError as error:
-        logger.error(
-            f'Failed to send health check: {json.dumps({"BackupName": backup_name, "HealthCheckUrl": health_check_url, "ErrorCode": error.reason})}')
-
-        raise error
-
-    else:
-        logger.debug(
-            f'Successfully sent health check: {json.dumps({"BackupName": backup_name, "HealthCheckUrl": health_check_url})}')
-
-
 class Backup:
-    def __init__(self, backup_config):
+    def __init__(self, backup_config, s3_client):
+        self.s3_client = s3_client
+        self.config = backup_config
 
-        self.name = backup_config['Name']
-        self.health_check_url = backup_config['HealthCheckUrl']
-        self.backup_destination = backup_config['BackupDestination']
-        self.sources = backup_config['BackupSources']
+        self.name = self.config['Name']
+        self.hc_url = self.config['HealthCheckUrl']
+        self.compression = self.config['TarCompression']
+        self.output_name = self.config['TarOutputName']
+
+        self.destination = self.config['Destination']
+        self.bucket = self.destination['Bucket']
+        self.file_prefix = self.destination['FilePrefix']
+        self.extra_upload_args = self.destination['UploadExtraArgs']
+
+        self.sources = self.config['Sources']
 
     @backup_duration
-    def make(self, s3_client):
-        try:
-            handle_health_check(
-                self.name, self.health_check_url, start_health_check=True)
+    def make(self):
+        with TemporaryDirectory() as temp_dir:
+            try:
+                self.output_path = os.path.join(temp_dir, self.output_name)
 
-            with TemporaryDirectory() as temp_dir:
-
-                (
-                    tar_output,
-                    tar_size,
-                    tar_size_pretty
-                ) = handle_sources(self.name, self.sources, temp_dir)
+                archive = Archive(self.config)
+                archive.make(self.output_path)
 
                 logger.info(
-                    f'Attempting to upload backup: {json.dumps({"Backup": self.name, "Size": tar_size_pretty})}')
+                    f'Attempting to upload backup: {json.dumps({"Backup": self.name, "Size": archive.size_pretty})}')
 
-                upload_duration = Upload(
-                    tar_output, tar_size, self.name, self.backup_destination, s3_client).transfer()
+                upload = Upload(self.config, self.output_path,
+                                archive.size, self.s3_client)
+                upload_duration = upload.transfer()
 
-        except Exception as error:
-            logger.error(
-                f'Failed backup: {json.dumps({"Backup": self.name})}')
+            except Exception as error:
+                logger.error(
+                    f'Failed backup: {json.dumps({"Backup": self.name})}')
 
-            handle_health_check(
-                self.name, self.health_check_url, fail_health_check=True)
+                raise error
 
-            raise error
+            else:
+                logger.info(
+                    f'Sucessfully uploaded backup: {json.dumps({"Backup": self.name, "Size": archive.size_pretty})}')
 
-        else:
-            logger.info(
-                f'Sucessfully uploaded backup: {json.dumps({"Backup": self.name, "Size": tar_size_pretty})}')
-
-            logger.debug(
-                f'Upload process took {upload_duration}.')
-
-            handle_health_check(self.name, self.health_check_url)
+                logger.debug(
+                    f'Upload process took {upload_duration}.')
